@@ -6,7 +6,7 @@ Date: 2026-05-14
 
 Build a 0-to-1 internal AI poster generation website and deploy it online. The product lets an internal user generate a vertical commercial poster by entering only a title and subtitle, choosing whether to show a logo, choosing a pre-uploaded product view, and choosing whether to show a sales information area.
 
-The generated output is a 1394 x 2700 vertical PNG poster. The visual background is AI-generated from fixed reference assets and style prompts. Chinese text, logo, and sales information are added by the system after generation so the final poster text stays accurate and readable.
+The generated output is a 1394 x 2700 vertical PNG poster. The visual background is AI-generated from fixed reference assets and style prompts. The overall style should feel premium and warm. Chinese poster text, logo, and sales information are added by the system after generation so the final poster text stays accurate and readable.
 
 ## MVP Scope
 
@@ -28,6 +28,8 @@ Included:
 - Fixed poster size: 1394 x 2700.
 - Product images, background reference images, logo files, and style prompts managed through project files and a JSON config.
 - School background scene requirements managed through the same config.
+- Overall visual style requirement: premium and warm.
+- Any visible text on the product cabin must remain accurate.
 - AI generation provider hidden behind a replaceable interface.
 - Default implementation can use one primary provider first, with the code structured so OpenAI or another image provider can be swapped later.
 - Final PNG preview and download.
@@ -115,13 +117,17 @@ Backgrounds describe school scenes. The first supported scene types are:
 
 Every generated base image must follow these scene and composition requirements:
 
+- The overall style is premium and warm.
 - The product cabin is placed against a wall.
 - The cabin is parallel to the wall.
 - Perspective is accurate.
 - Camera angle is accurate for the selected product view.
+- Any visible text, branding, labels, or markings already printed on the product cabin must remain accurate to the reference product image.
 - The upper area of the poster has generous empty space reserved for the title.
 - The upper empty area must not contain important scene details, key product parts, signage, labels, or other information that would be covered by the title.
-- The AI base image must avoid text, words, logos, labels, watermarks, and signatures.
+- The AI base image must avoid adding new text, words, logos, labels, watermarks, and signatures outside the original product cabin markings.
+
+If the selected AI provider cannot reliably preserve cabin text, implementation should prefer a workflow that protects or re-composites the cabin from the source product view after the background is generated. The requirement is that final visible cabin text is accurate, not that the AI model must render it unaided.
 
 Example config shape:
 
@@ -151,8 +157,8 @@ Example config shape:
       "name": "图书馆休息区",
       "sceneType": "library-lounge",
       "image": "/assets/backgrounds/school-library-lounge.png",
-      "stylePrompt": "premium commercial poster, clean lighting, modern school library lounge area",
-      "compositionPrompt": "place the cabin against a wall, parallel to the wall, accurate perspective, accurate camera angle, leave generous clean empty space in the upper area for title text, no important details in the upper title area, no text, no labels, no logos, no watermark"
+      "stylePrompt": "premium and warm commercial poster, clean soft lighting, modern school library lounge area",
+      "compositionPrompt": "place the cabin against a wall, parallel to the wall, accurate perspective, accurate camera angle, preserve any visible text and markings on the cabin exactly as in the reference product image, leave generous clean empty space in the upper area for title text, no important details in the upper title area, do not add any new text, labels, logos, or watermark"
     }
   ],
   "logo": {
@@ -172,11 +178,13 @@ The provider receives:
 - Style prompt.
 - School scene type and composition prompt.
 - Output dimensions or target aspect ratio.
+- Instruction to use a premium and warm visual style.
 - Instruction to place the cabin against a wall and parallel to the wall.
 - Instruction to preserve accurate perspective and an accurate camera angle for the selected product view.
+- Instruction to preserve visible product cabin text, branding, labels, and markings accurately from the reference product image.
 - Instruction to leave generous empty space in the upper area for title placement.
 - Instruction to keep important scene details out of the upper title area.
-- Instruction to avoid text, words, logos, labels, watermarks, and signatures in the AI base image.
+- Instruction to avoid adding new text, words, logos, labels, watermarks, and signatures outside the original product cabin markings.
 
 The provider returns:
 
@@ -249,8 +257,10 @@ Manual verification:
 
 - Generate a poster for at least one product view.
 - Generate at least one school scene: teaching building corner, campus, library lounge area, or dormitory building activity room.
+- Confirm the overall style feels premium and warm.
 - Confirm the cabin is against a wall and parallel to the wall.
 - Confirm perspective and camera angle are visually plausible.
+- Confirm any visible text on the cabin is accurate and not distorted.
 - Confirm the upper title area has enough empty space and does not contain important details.
 - Generate with logo on and off.
 - Generate with sales area on and off.
