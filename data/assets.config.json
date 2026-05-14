@@ -1,0 +1,28 @@
+{
+  "products": [
+    {
+      "id": "cabin",
+      "name": "示例舱体",
+      "views": [
+        {
+          "id": "front",
+          "name": "正面",
+          "image": "/assets/products/cabin/front.svg"
+        }
+      ]
+    }
+  ],
+  "backgrounds": [
+    {
+      "id": "school-library-lounge",
+      "name": "图书馆休息区",
+      "sceneType": "library-lounge",
+      "image": "/assets/backgrounds/school-library-lounge.svg",
+      "stylePrompt": "premium and warm commercial poster, clean soft lighting, modern school library lounge area",
+      "compositionPrompt": "place the cabin against a wall, parallel to the wall, accurate perspective, accurate camera angle, preserve any visible text and markings on the cabin exactly as in the reference product image, leave generous clean empty space in the upper area for title text, no important details in the upper title area, do not add any new text, labels, logos, or watermark"
+    }
+  ],
+  "logo": {
+    "image": "/assets/logo/logo.svg"
+  }
+}
