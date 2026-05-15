@@ -43,8 +43,17 @@ export default function HomePage() {
     () => assets?.products.find((product) => product.id === productId),
     [assets, productId],
   );
+  const canGenerate = Boolean(
+    assets && productId && viewId && backgroundId && password && title && subtitle && status !== "loading",
+  );
 
   async function generatePoster() {
+    if (!canGenerate) {
+      setError("请先完成必填信息并等待素材加载完成");
+      setStatus("error");
+      return;
+    }
+
     setStatus("loading");
     setError("");
     setPosterUrl((currentUrl) => {
@@ -54,10 +63,8 @@ export default function HomePage() {
       return "";
     });
 
-    let response: Response;
-
     try {
-      response = await fetch("/api/generate", {
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -71,22 +78,21 @@ export default function HomePage() {
           showSalesInfo,
         }),
       });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: "生成失败" }));
+        setError(payload.error ? payload.error : "生成失败");
+        setStatus("error");
+        return;
+      }
+
+      const blob = await response.blob();
+      setPosterUrl(URL.createObjectURL(blob));
+      setStatus("success");
     } catch {
       setError("网络异常，请稍后重试");
       setStatus("error");
-      return;
     }
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: "生成失败" }));
-      setError(payload.error ? payload.error : "生成失败");
-      setStatus("error");
-      return;
-    }
-
-    const blob = await response.blob();
-    setPosterUrl(URL.createObjectURL(blob));
-    setStatus("success");
   }
 
   return (
@@ -157,10 +163,14 @@ export default function HomePage() {
               显示销售栏
             </label>
           </div>
-          <button disabled={status === "loading"} onClick={generatePoster}>
+          <button disabled={!canGenerate} onClick={generatePoster}>
             {status === "loading" ? "生成中..." : "生成海报"}
           </button>
-          {error ? <p className="error">{error}</p> : null}
+          {error ? (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
         <div className="preview-panel">
           {posterUrl ? (
