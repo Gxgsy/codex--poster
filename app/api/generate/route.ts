@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AiProviderGenerationError, classifyGenerateError } from "@/lib/api/generate-errors";
+import { aiGenerationTimeoutMessage } from "@/lib/api/generate-errors";
 import { createAiProvider } from "@/lib/ai/provider";
 import { findBackground, findProductView, loadAssetConfig } from "@/lib/assets/load";
 import { requireAccessPassword } from "@/lib/auth";
@@ -20,6 +21,27 @@ const requestSchema = z.object({
   showSalesInfo: z.boolean()
 });
 
+function getAiGenerationTimeoutMs(): number {
+  const timeout = Number(process.env.AI_GENERATION_TIMEOUT_MS);
+
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : 60_000;
+}
+
+async function withAiGenerationTimeout<T>(promise: Promise<T>): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(aiGenerationTimeoutMessage)), getAiGenerationTimeoutMs());
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = requestSchema.parse(await request.json());
@@ -32,13 +54,15 @@ export async function POST(request: Request) {
     const provider = createAiProvider();
     let baseImage: Buffer;
     try {
-      baseImage = await provider.generateBaseImage({
-        productImagePath: view.image,
-        backgroundImagePath: background.image,
-        stylePrompt: background.stylePrompt,
-        compositionPrompt: background.compositionPrompt,
-        sceneType: background.sceneType
-      });
+      baseImage = await withAiGenerationTimeout(
+        provider.generateBaseImage({
+          productImagePath: view.image,
+          backgroundImagePath: background.image,
+          stylePrompt: background.stylePrompt,
+          compositionPrompt: background.compositionPrompt,
+          sceneType: background.sceneType
+        })
+      );
     } catch (error) {
       throw new AiProviderGenerationError(error);
     }

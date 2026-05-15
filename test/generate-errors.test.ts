@@ -41,6 +41,12 @@ describe("generate API error classification", () => {
 
   it("returns 502 for AI provider failures with sanitized messages", () => {
     expect(classifyGenerateError(
+      new Error("AI image generation timed out.")
+    )).toEqual({
+      message: "AI image generation timed out.",
+      status: 502
+    });
+    expect(classifyGenerateError(
       new Error("OpenAI image response did not include image data.")
     )).toEqual({
       message: "AI image generation failed.",

@@ -2,6 +2,7 @@ import { ZodError } from "zod";
 
 const invalidPasswordMessage = "Invalid access password.";
 const missingOpenAiKeyMessage = "OPENAI_API_KEY is required when AI_PROVIDER=openai.";
+export const aiGenerationTimeoutMessage = "AI image generation timed out.";
 
 const clientErrorMessages = new Set([
   "Selected product view was not found.",
@@ -10,6 +11,7 @@ const clientErrorMessages = new Set([
 
 const aiProviderErrorMessages = new Set([
   missingOpenAiKeyMessage,
+  aiGenerationTimeoutMessage,
   "OpenAI image response did not include image data."
 ]);
 
@@ -33,7 +35,9 @@ function classifyAiProviderError(error: unknown): GenerateErrorResponse {
   const message = getErrorMessage(error);
 
   return {
-    message: message === missingOpenAiKeyMessage ? missingOpenAiKeyMessage : "AI image generation failed.",
+    message: message === missingOpenAiKeyMessage || message === aiGenerationTimeoutMessage
+      ? message
+      : "AI image generation failed.",
     status: 502
   };
 }
