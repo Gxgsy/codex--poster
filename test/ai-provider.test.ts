@@ -19,6 +19,19 @@ describe("AI image provider", () => {
     expect(output.equals(expected)).toBe(true);
   });
 
+  it("throws a clear error for the OpenAI provider placeholder", async () => {
+    const originalProvider = process.env.AI_PROVIDER;
+    process.env.AI_PROVIDER = "openai";
+
+    try {
+      await expect(createAiProvider().generateBaseImage(mockInput)).rejects.toThrow(
+        "OpenAI image provider is not implemented yet."
+      );
+    } finally {
+      process.env.AI_PROVIDER = originalProvider;
+    }
+  });
+
   it("creates a 1394 x 2700 PNG base image with the mock provider", async () => {
     const output = await generateMockBaseImage(mockInput);
 
