@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { AiProviderGenerationError, classifyGenerateError } from "@/lib/api/generate-errors";
 import { createAiProvider } from "@/lib/ai/provider";
 import { findBackground, findProductView, loadAssetConfig } from "@/lib/assets/load";
 import { requireAccessPassword } from "@/lib/auth";
@@ -29,13 +30,18 @@ export async function POST(request: Request) {
     const background = findBackground(config, body.backgroundId);
 
     const provider = createAiProvider();
-    const baseImage = await provider.generateBaseImage({
-      productImagePath: view.image,
-      backgroundImagePath: background.image,
-      stylePrompt: background.stylePrompt,
-      compositionPrompt: background.compositionPrompt,
-      sceneType: background.sceneType
-    });
+    let baseImage: Buffer;
+    try {
+      baseImage = await provider.generateBaseImage({
+        productImagePath: view.image,
+        backgroundImagePath: background.image,
+        stylePrompt: background.stylePrompt,
+        compositionPrompt: background.compositionPrompt,
+        sceneType: background.sceneType
+      });
+    } catch (error) {
+      throw new AiProviderGenerationError(error);
+    }
 
     const png = await composePoster({
       baseImage,
@@ -55,9 +61,8 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Poster generation failed." },
-      { status: error instanceof Error && error.message === "Invalid access password." ? 401 : 400 }
-    );
+    const response = classifyGenerateError(error);
+
+    return NextResponse.json({ error: response.message }, { status: response.status });
   }
 }
