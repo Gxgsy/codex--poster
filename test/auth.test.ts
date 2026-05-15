@@ -10,5 +10,6 @@ describe("isPasswordValid", () => {
     expect(isPasswordValid("", "secret")).toBe(false);
     expect(isPasswordValid("wrong", "secret")).toBe(false);
     expect(isPasswordValid("secret", "")).toBe(false);
+    expect(isPasswordValid("secret", undefined)).toBe(false);
   });
 });
