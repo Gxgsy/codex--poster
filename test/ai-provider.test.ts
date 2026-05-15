@@ -19,16 +19,28 @@ describe("AI image provider", () => {
     expect(output.equals(expected)).toBe(true);
   });
 
-  it("throws a clear error for the OpenAI provider placeholder", async () => {
+  it("requires an API key for the OpenAI provider before loading assets", async () => {
     const originalProvider = process.env.AI_PROVIDER;
+    const originalApiKey = process.env.OPENAI_API_KEY;
     process.env.AI_PROVIDER = "openai";
+    delete process.env.OPENAI_API_KEY;
 
     try {
       await expect(createAiProvider().generateBaseImage(mockInput)).rejects.toThrow(
-        "OpenAI image provider is not implemented yet."
+        "OPENAI_API_KEY is required when AI_PROVIDER=openai."
       );
     } finally {
-      process.env.AI_PROVIDER = originalProvider;
+      if (originalProvider === undefined) {
+        delete process.env.AI_PROVIDER;
+      } else {
+        process.env.AI_PROVIDER = originalProvider;
+      }
+
+      if (originalApiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = originalApiKey;
+      }
     }
   });
 
