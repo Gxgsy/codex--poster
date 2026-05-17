@@ -14,6 +14,8 @@ Set `APP_ACCESS_PASSWORD` in `.env.local`.
 
 Use `AI_PROVIDER=mock` for local deterministic generation. Use `AI_PROVIDER=openai` with `OPENAI_API_KEY` after the OpenAI image adapter has been verified against current official docs.
 
+`OPENAI_IMAGE_MODEL` defaults to `gpt-image-2`. Keep it configurable so production can move to a newer supported image model without a code change.
+
 `AI_GENERATION_TIMEOUT_MS` controls the server-side AI generation timeout. The default is `60000`.
 
 For production, a licensed CJK font file is required so Chinese title, subtitle, and sales labels render deterministically on Vercel/Linux. Place the font under `public/fonts`, for example `public/fonts/NotoSansSC-Regular.otf`, then set:
@@ -51,6 +53,7 @@ Deploy to Vercel and configure:
 - `APP_ACCESS_PASSWORD`
 - `AI_PROVIDER`
 - `OPENAI_API_KEY` when using OpenAI
+- `OPENAI_IMAGE_MODEL`
 - `AI_GENERATION_TIMEOUT_MS`
 - `POSTER_FONT_FAMILY`
 - `POSTER_FONT_FILE`

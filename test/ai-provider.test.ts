@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { createAiProvider } from "@/lib/ai/provider";
 import { generateMockBaseImage } from "@/lib/ai/mock";
+import { getOpenAiImageModel } from "@/lib/ai/openai";
 
 const mockInput = {
   productImagePath: "/assets/products/cabin/front.svg",
@@ -40,6 +41,24 @@ describe("AI image provider", () => {
         delete process.env.OPENAI_API_KEY;
       } else {
         process.env.OPENAI_API_KEY = originalApiKey;
+      }
+    }
+  });
+
+  it("uses the supported OpenAI image model by default and allows an override", () => {
+    const originalModel = process.env.OPENAI_IMAGE_MODEL;
+
+    try {
+      delete process.env.OPENAI_IMAGE_MODEL;
+      expect(getOpenAiImageModel()).toBe("gpt-image-2");
+
+      process.env.OPENAI_IMAGE_MODEL = " gpt-image-1 ";
+      expect(getOpenAiImageModel()).toBe("gpt-image-1");
+    } finally {
+      if (originalModel === undefined) {
+        delete process.env.OPENAI_IMAGE_MODEL;
+      } else {
+        process.env.OPENAI_IMAGE_MODEL = originalModel;
       }
     }
   });

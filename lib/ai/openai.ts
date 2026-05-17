@@ -3,6 +3,12 @@ import OpenAI, { toFile } from "openai";
 import sharp from "sharp";
 import type { GenerateBaseImageInput } from "./provider";
 
+const defaultOpenAiImageModel = "gpt-image-2";
+
+export function getOpenAiImageModel(): string {
+  return process.env.OPENAI_IMAGE_MODEL?.trim() || defaultOpenAiImageModel;
+}
+
 function resolveAssetPath(assetPath: string, assetLabel: "product" | "background"): string {
   if (!assetPath.startsWith("/assets/")) {
     throw new Error(`Invalid ${assetLabel} image path: expected a path under /assets/`);
@@ -54,7 +60,7 @@ export async function generateOpenAiBaseImage(
   ]);
 
   const response = await client.images.edit({
-    model: "gpt-image-2",
+    model: getOpenAiImageModel(),
     image: [productReference, backgroundReference],
     prompt: buildPrompt(input),
     size: "1024x1536",
