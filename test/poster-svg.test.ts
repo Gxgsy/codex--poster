@@ -117,4 +117,27 @@ describe("buildPosterOverlaySvg", () => {
       }
     }
   });
+
+  it("fails fast in production when no poster font file is configured", () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalFontFile = process.env.POSTER_FONT_FILE;
+    process.env.NODE_ENV = "production";
+    delete process.env.POSTER_FONT_FILE;
+
+    try {
+      expect(() => buildPosterOverlaySvg({
+        title: "智慧校园空间",
+        subtitle: "高级温馨的学习休息场景",
+        showSalesInfo: false
+      })).toThrow("POSTER_FONT_FILE is required for production poster rendering.");
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+
+      if (originalFontFile === undefined) {
+        delete process.env.POSTER_FONT_FILE;
+      } else {
+        process.env.POSTER_FONT_FILE = originalFontFile;
+      }
+    }
+  });
 });

@@ -16,12 +16,14 @@ Use `AI_PROVIDER=mock` for local deterministic generation. Use `AI_PROVIDER=open
 
 `AI_GENERATION_TIMEOUT_MS` controls the server-side AI generation timeout. The default is `60000`.
 
-For production, use a licensed CJK font file so Chinese title, subtitle, and sales labels render deterministically on Vercel/Linux. Place the font under `public/fonts`, for example `public/fonts/NotoSansSC-Regular.otf`, then set:
+For production, a licensed CJK font file is required so Chinese title, subtitle, and sales labels render deterministically on Vercel/Linux. Place the font under `public/fonts`, for example `public/fonts/NotoSansSC-Regular.otf`, then set:
 
 ```bash
 POSTER_FONT_FAMILY=Noto Sans SC
 POSTER_FONT_FILE=NotoSansSC-Regular.otf
 ```
+
+If `POSTER_FONT_FILE` is missing in production, poster generation fails fast instead of silently rendering missing Chinese glyphs.
 
 ## Assets
 

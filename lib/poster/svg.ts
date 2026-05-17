@@ -51,6 +51,10 @@ function getPosterFontFaceCss(fontFamily: string): string {
   const fontFile = process.env.POSTER_FONT_FILE?.trim();
 
   if (!fontFile) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("POSTER_FONT_FILE is required for production poster rendering.");
+    }
+
     return "";
   }
 
