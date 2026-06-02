@@ -13,6 +13,37 @@ const initialBackground = initialAssets.backgrounds[0];
 const initialLogo = initialAssets.logos[0];
 const quickPosterSizes = ["1080*1920", "1080*1440"];
 
+function hasProduct(config: AssetConfig, productId: string): boolean {
+  return config.products.some((product) => product.id === productId);
+}
+
+function hasView(config: AssetConfig, productId: string, viewId: string): boolean {
+  return Boolean(config.products.find((product) => product.id === productId)?.views.some((view) => view.id === viewId));
+}
+
+function hasBackground(config: AssetConfig, backgroundId: string): boolean {
+  return config.backgrounds.some((background) => background.id === backgroundId);
+}
+
+function hasLogo(config: AssetConfig, logoId: string): boolean {
+  return config.logos.some((logo) => logo.id === logoId);
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    const payload = await response.json().catch(() => undefined) as { error?: string } | undefined;
+    return payload?.error || "生成失败";
+  }
+
+  if (response.status >= 500) {
+    return `服务器生成服务异常（${response.status}），请稍后重试`;
+  }
+
+  return "生成失败";
+}
+
 export default function HomePage() {
   const [assets, setAssets] = useState<AssetConfig>(initialAssets);
   const [doubaoApiKey, setDoubaoApiKey] = useState("");
@@ -44,10 +75,13 @@ export default function HomePage() {
       })
       .then((config: AssetConfig) => {
         setAssets(config);
-        setProductId((current) => current || config.products[0]?.id || "");
-        setViewId((current) => current || config.products[0]?.views[0]?.id || "");
-        setBackgroundId((current) => current || config.backgrounds[0]?.id || "");
-        setLogoId((current) => current || config.logos[0]?.id || "");
+        setProductId((current) => hasProduct(config, current) ? current : config.products[0]?.id || "");
+        setViewId((current) => {
+          const productId = hasProduct(config, initialProduct?.id ?? "") ? initialProduct?.id ?? "" : config.products[0]?.id || "";
+          return hasView(config, productId, current) ? current : config.products.find((product) => product.id === productId)?.views[0]?.id || "";
+        });
+        setBackgroundId((current) => hasBackground(config, current) ? current : config.backgrounds[0]?.id || "");
+        setLogoId((current) => hasLogo(config, current) ? current : config.logos[0]?.id || "");
       })
       .catch(() => {
         setAssets(initialAssets);
@@ -66,11 +100,43 @@ export default function HomePage() {
     () => selectedProduct?.views.find((view) => view.id === viewId),
     [selectedProduct, viewId],
   );
+  const selectedLogo = useMemo(
+    () => assets?.logos.find((logo) => logo.id === logoId),
+    [assets, logoId],
+  );
   const posterSizeParts = posterSize.match(/^(\d{3,5})\*(\d{3,5})$/);
   const previewAspectRatio = posterSizeParts ? `${posterSizeParts[1]} / ${posterSizeParts[2]}` : "1080 / 1920";
   const canGenerate = Boolean(
-    assets && doubaoApiKey && productId && viewId && backgroundId && selectedView?.image && posterSize && (!showLogo || logoId) && title && subtitle && status !== "loading",
+    assets && doubaoApiKey && selectedProduct && selectedView?.image && selectedBackground && posterSize && (!showLogo || selectedLogo) && title && subtitle && status !== "loading",
   );
+
+  useEffect(() => {
+    if (!assets) {
+      return;
+    }
+
+    const nextProductId = hasProduct(assets, productId) ? productId : assets.products[0]?.id || "";
+    if (nextProductId !== productId) {
+      setProductId(nextProductId);
+    }
+
+    const nextViewId = hasView(assets, nextProductId, viewId)
+      ? viewId
+      : assets.products.find((product) => product.id === nextProductId)?.views[0]?.id || "";
+    if (nextViewId !== viewId) {
+      setViewId(nextViewId);
+    }
+
+    const nextBackgroundId = hasBackground(assets, backgroundId) ? backgroundId : assets.backgrounds[0]?.id || "";
+    if (nextBackgroundId !== backgroundId) {
+      setBackgroundId(nextBackgroundId);
+    }
+
+    const nextLogoId = hasLogo(assets, logoId) ? logoId : assets.logos[0]?.id || "";
+    if (nextLogoId !== logoId) {
+      setLogoId(nextLogoId);
+    }
+  }, [assets, productId, viewId, backgroundId, logoId]);
 
   async function refreshAssets(config?: AssetConfig) {
     if (config) {
@@ -167,8 +233,7 @@ export default function HomePage() {
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({ error: "生成失败" }));
-        setError(payload.error ? payload.error : "生成失败");
+        setError(await readErrorMessage(response));
         setStatus("error");
         return;
       }

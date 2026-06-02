@@ -92,10 +92,10 @@ export async function POST(request: Request) {
     const productImagePath = view.image;
 
     const provider = createAiProvider();
-    let baseImages: Buffer[];
+    const baseImages: Buffer[] = [];
     try {
-      baseImages = await withAiGenerationTimeout(Promise.all(
-        posterVariationPrompts.map((variationPrompt) => provider.generateBaseImage({
+      for (const variationPrompt of posterVariationPrompts) {
+        baseImages.push(await withAiGenerationTimeout(provider.generateBaseImage({
           apiKey: body.doubaoApiKey,
           productImagePath,
           backgroundImagePath: background.image,
@@ -105,8 +105,8 @@ export async function POST(request: Request) {
           viewId: body.viewId,
           variationPrompt,
           outputSize
-        }))
-      ));
+        })));
+      }
     } catch (error) {
       throw new AiProviderGenerationError(error);
     }
