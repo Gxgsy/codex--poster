@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { z } from "zod";
 import { POST } from "@/app/api/generate/route";
 import { AiProviderGenerationError, classifyGenerateError } from "@/lib/api/generate-errors";
@@ -86,5 +88,29 @@ describe("generate API error classification", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Invalid request." });
+  });
+
+  it("returns generated poster URLs instead of embedding large base64 images", async () => {
+    const response = await POST(new Request("http://localhost/api/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        doubaoApiKey: "test-key",
+        title: "测试标题",
+        subtitle: "测试副标题",
+        posterSize: "1080*1920",
+        productId: "cabin",
+        viewId: "front",
+        backgroundId: "teaching-building-corner",
+        showLogo: false,
+        showSalesInfo: false
+      })
+    }));
+    const payload = await response.json() as { posters?: Array<{ image: string }> };
+
+    expect(response.status).toBe(200);
+    expect(payload.posters).toHaveLength(3);
+    expect(payload.posters?.[0].image).toMatch(/^\/generated\/poster-.+\.png$/);
+    expect(payload.posters?.[0].image).not.toContain("base64");
+    expect(existsSync(path.join(process.cwd(), "public", payload.posters![0].image))).toBe(true);
   });
 });

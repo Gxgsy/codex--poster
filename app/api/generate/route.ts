@@ -1,3 +1,6 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AiProviderGenerationError, classifyGenerateError } from "@/lib/api/generate-errors";
@@ -30,6 +33,17 @@ const posterVariationPrompts = [
   "Variation 2: corridor-window wall scene with softer diffused side light; keep the upper title-safe area calm and low contrast, no window frame or hard shadow crossing text area, full cabin visible inside x=18% to 82% and y=36% to 84%, rear plane parallel and flush against wall.",
   "Variation 3: slightly wider campus lounge or activity-room wall scene with more environmental context at the lower sides only; upper title-safe area remains simple blank wall, full cabin visible with no edge crop, no partial side panel, cabin inside x=18% to 82% and y=36% to 84%, front side faces open floor."
 ];
+
+function writeGeneratedPoster(png: Buffer, index: number): string {
+  const fileName = `poster-${Date.now()}-${randomUUID()}-${index + 1}.png`;
+  const outputDir = path.join(process.cwd(), "public", "generated");
+  const outputPath = path.join(outputDir, fileName);
+
+  mkdirSync(outputDir, { recursive: true });
+  writeFileSync(outputPath, png);
+
+  return `/generated/${fileName}`;
+}
 
 function getAiGenerationTimeoutMs(): number {
   const timeout = Number(process.env.AI_GENERATION_TIMEOUT_MS);
@@ -113,7 +127,7 @@ export async function POST(request: Request) {
 
       return {
         id: `poster-${index + 1}`,
-        image: `data:image/png;base64,${png.toString("base64")}`
+        image: writeGeneratedPoster(png, index)
       };
     }));
 
