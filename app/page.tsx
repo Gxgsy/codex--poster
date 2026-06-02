@@ -213,33 +213,40 @@ export default function HomePage() {
     setPosterUrls([]);
 
     try {
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          doubaoApiKey,
-          title,
-          subtitle,
-          posterSize,
-          productId,
-          viewId,
-          backgroundId,
-          logoId,
-          showLogo,
-          showSalesInfo,
-          salesName,
-          salesPhone,
-        }),
-      });
+      const generatedPosterUrls: string[] = [];
+      for (let variationIndex = 0; variationIndex < 3; variationIndex += 1) {
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            doubaoApiKey,
+            title,
+            subtitle,
+            posterSize,
+            productId,
+            viewId,
+            backgroundId,
+            logoId,
+            showLogo,
+            showSalesInfo,
+            salesName,
+            salesPhone,
+            variationIndex,
+          }),
+        });
 
-      if (!response.ok) {
-        setError(await readErrorMessage(response));
-        setStatus("error");
-        return;
+        if (!response.ok) {
+          setError(await readErrorMessage(response));
+          setStatus("error");
+          return;
+        }
+
+        const payload = await response.json() as { posters?: Array<{ image: string }> };
+        const nextPosterUrls = payload.posters?.map((poster) => poster.image) ?? [];
+        generatedPosterUrls.push(...nextPosterUrls);
+        setPosterUrls([...generatedPosterUrls]);
       }
 
-      const payload = await response.json() as { posters?: Array<{ image: string }> };
-      setPosterUrls(payload.posters?.map((poster) => poster.image) ?? []);
       setStatus("success");
     } catch {
       setError("网络异常，请稍后重试");

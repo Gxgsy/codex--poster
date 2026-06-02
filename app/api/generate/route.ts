@@ -25,7 +25,8 @@ const requestSchema = z.object({
   showLogo: z.boolean(),
   showSalesInfo: z.boolean(),
   salesName: z.string().max(5).optional().default(""),
-  salesPhone: z.string().max(12).optional().default("")
+  salesPhone: z.string().max(12).optional().default(""),
+  variationIndex: z.number().int().min(0).max(2).optional()
 });
 
 const posterVariationPrompts = [
@@ -92,9 +93,13 @@ export async function POST(request: Request) {
     const productImagePath = view.image;
 
     const provider = createAiProvider();
+    const promptsToGenerate = typeof body.variationIndex === "number"
+      ? [posterVariationPrompts[body.variationIndex]]
+      : posterVariationPrompts;
+    const posterStartIndex = body.variationIndex ?? 0;
     const baseImages: Buffer[] = [];
     try {
-      for (const variationPrompt of posterVariationPrompts) {
+      for (const variationPrompt of promptsToGenerate) {
         baseImages.push(await withAiGenerationTimeout(provider.generateBaseImage({
           apiKey: body.doubaoApiKey,
           productImagePath,
@@ -126,8 +131,8 @@ export async function POST(request: Request) {
       });
 
       return {
-        id: `poster-${index + 1}`,
-        image: writeGeneratedPoster(png, index)
+        id: `poster-${posterStartIndex + index + 1}`,
+        image: writeGeneratedPoster(png, posterStartIndex + index)
       };
     }));
 
