@@ -109,8 +109,8 @@ describe("generate API error classification", () => {
 
     expect(response.status).toBe(200);
     expect(payload.posters).toHaveLength(3);
-    expect(payload.posters?.[0].image).toMatch(/^\/generated\/poster-.+\.png$/);
+    expect(payload.posters?.[0].image).toMatch(/^\/api\/generated\/poster-.+\.png$/);
     expect(payload.posters?.[0].image).not.toContain("base64");
-    expect(existsSync(path.join(process.cwd(), "public", payload.posters![0].image))).toBe(true);
+    expect(existsSync(path.join(process.cwd(), "data", "generated", path.basename(payload.posters![0].image)))).toBe(true);
   });
 });

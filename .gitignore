@@ -9,4 +9,5 @@ dist/
 coverage/
 .worktrees/
 public/generated/
+data/generated/
 tsconfig.tsbuildinfo

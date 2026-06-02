@@ -37,13 +37,13 @@ const posterVariationPrompts = [
 
 function writeGeneratedPoster(png: Buffer, index: number): string {
   const fileName = `poster-${Date.now()}-${randomUUID()}-${index + 1}.png`;
-  const outputDir = path.join(process.cwd(), "public", "generated");
+  const outputDir = path.join(process.cwd(), "data", "generated");
   const outputPath = path.join(outputDir, fileName);
 
   mkdirSync(outputDir, { recursive: true });
   writeFileSync(outputPath, png);
 
-  return `/generated/${fileName}`;
+  return `/api/generated/${fileName}`;
 }
 
 function getAiGenerationTimeoutMs(): number {
