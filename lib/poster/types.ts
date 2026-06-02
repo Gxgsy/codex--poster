@@ -1,5 +1,5 @@
 export type GeneratePosterRequest = {
-  password: string;
+  doubaoApiKey: string;
   title: string;
   subtitle: string;
   productId: string;
@@ -7,10 +7,20 @@ export type GeneratePosterRequest = {
   backgroundId: string;
   showLogo: boolean;
   showSalesInfo: boolean;
+  salesName?: string;
+  salesPhone?: string;
 };
+
+export type PosterTextAlign = "left" | "center" | "right";
 
 export type PosterOverlayInput = {
   title: string;
   subtitle: string;
   showSalesInfo: boolean;
+  salesName?: string;
+  salesPhone?: string;
+  viewId?: string;
+  titleColor?: string;
+  subtitleColor?: string;
+  textShadowColor?: string;
 };

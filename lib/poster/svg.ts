@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { posterLayout, POSTER_HEIGHT, POSTER_WIDTH } from "./layout";
-import type { PosterOverlayInput } from "./types";
+import type { PosterOverlayInput, PosterTextAlign } from "./types";
 
 const defaultPosterFontFamily = "Noto Sans SC";
+const lineStartPunctuation = new Set(["。", "，", "、", "；", "：", "！", "？", "）", "】", "》", "」", "』", ".", ",", ";", ":", "!", "?"]);
 
 function escapeXml(value: string): string {
   return value
@@ -22,6 +23,20 @@ export function wrapText(text: string, maxChars: number, maxLines: number): stri
     lines.push(chars.slice(index, index + maxChars).join(""));
   }
 
+  for (let index = 1; index < lines.length; index += 1) {
+    const firstChar = Array.from(lines[index])[0];
+    if (firstChar && lineStartPunctuation.has(firstChar)) {
+      lines[index - 1] += firstChar;
+      lines[index] = Array.from(lines[index]).slice(1).join("");
+    }
+  }
+
+  for (let index = lines.length - 1; index > 0; index -= 1) {
+    if (!lines[index]) {
+      lines.splice(index, 1);
+    }
+  }
+
   return lines;
 }
 
@@ -31,28 +46,69 @@ function textLines(lines: string[], x: number, y: number, lineHeight: number, fo
     .join("");
 }
 
-function scaleTextLayout(lineCount: number, baseFontSize: number, baseLineHeight: number, nominalMaxLines: number) {
-  if (lineCount <= nominalMaxLines) {
-    return { fontSize: baseFontSize, lineHeight: baseLineHeight };
+function limitText(value: string | undefined, maxChars: number): string {
+  return Array.from(value?.trim() ?? "").slice(0, maxChars).join("");
+}
+
+export function getPosterTextAlign(viewId?: string): PosterTextAlign {
+  if (viewId === "front") {
+    return "center";
   }
 
-  const scale = nominalMaxLines / lineCount;
-  const fontSize = Math.max(34, Math.floor(baseFontSize * scale));
-  const lineHeight = Math.max(44, Math.floor(baseLineHeight * scale));
+  if (viewId === "right") {
+    return "right";
+  }
 
-  return { fontSize, lineHeight };
+  return "left";
 }
 
-function getPosterFontFamily(): string {
-  return process.env.POSTER_FONT_FAMILY?.trim() || defaultPosterFontFamily;
+function getTextAnchor(align: PosterTextAlign): "start" | "middle" | "end" {
+  if (align === "center") {
+    return "middle";
+  }
+
+  if (align === "right") {
+    return "end";
+  }
+
+  return "start";
 }
 
-function getPosterFontFaceCss(fontFamily: string): string {
-  const fontFile = process.env.POSTER_FONT_FILE?.trim();
+function getAlignedTextX(align: PosterTextAlign): number {
+  if (align === "center") {
+    return POSTER_WIDTH / 2;
+  }
+
+  if (align === "right") {
+    return POSTER_WIDTH - posterLayout.title.x;
+  }
+
+  return posterLayout.title.x;
+}
+
+export function getTitleTypography(title: string) {
+  const length = Array.from(title.trim()).length;
+  const estimatedFitSize = Math.floor(posterLayout.title.width / Math.max(1, length * 0.92));
+  const fontSize = Math.max(56, Math.min(160, estimatedFitSize));
+  const maxChars = Number.MAX_SAFE_INTEGER;
+
+  return {
+    fontSize,
+    lineHeight: Math.round(fontSize * 1.12),
+    maxChars
+  };
+}
+
+function getPosterFontFamily(envName: string): string {
+  return process.env[envName]?.trim() || process.env.POSTER_FONT_FAMILY?.trim() || defaultPosterFontFamily;
+}
+
+function getPosterFontFaceCss(fontFamily: string, envName: string): string {
+  const fontFile = process.env[envName]?.trim() || process.env.POSTER_FONT_FILE?.trim();
 
   if (!fontFile) {
     if (process.env.NODE_ENV === "production") {
-      throw new Error("POSTER_FONT_FILE is required for production poster rendering.");
+      throw new Error(`${envName} is required for production poster rendering.`);
     }
 
     return "";
@@ -79,38 +135,48 @@ function getPosterFontFaceCss(fontFamily: string): string {
 }
 
 export function buildPosterOverlaySvg(input: PosterOverlayInput): string {
-  const titleLines = wrapText(input.title, posterLayout.title.maxChars, posterLayout.title.maxLines);
-  const subtitleLines = wrapText(input.subtitle, posterLayout.subtitle.maxChars, posterLayout.subtitle.maxLines);
-  const titleTextLayout = scaleTextLayout(
-    titleLines.length,
-    posterLayout.title.fontSize,
-    posterLayout.title.lineHeight,
-    posterLayout.title.maxLines
-  );
-  const subtitleTextLayout = scaleTextLayout(
-    subtitleLines.length,
-    posterLayout.subtitle.fontSize,
-    posterLayout.subtitle.lineHeight,
-    posterLayout.subtitle.maxLines
-  );
-  const posterFontFamily = getPosterFontFamily();
-  const posterFontFaceCss = getPosterFontFaceCss(posterFontFamily);
+  const titleTextLayout = getTitleTypography(input.title);
+  const subtitleFontSize = Math.round(titleTextLayout.fontSize / 2);
+  const subtitleLineHeight = Math.round(subtitleFontSize * 1.32);
+  const subtitleMaxChars = Math.max(12, Math.floor(posterLayout.subtitle.width / (subtitleFontSize * 0.9)));
+  const titleLines = [input.title.trim()];
+  const subtitleLines = wrapText(input.subtitle, subtitleMaxChars, posterLayout.subtitle.maxLines);
+  const titleFontFamily = getPosterFontFamily("POSTER_TITLE_FONT_FAMILY");
+  const subtitleFontFamily = getPosterFontFamily("POSTER_SUBTITLE_FONT_FAMILY");
+  const posterFontFaceCss = [
+    getPosterFontFaceCss(titleFontFamily, "POSTER_TITLE_FONT_FILE"),
+    getPosterFontFaceCss(subtitleFontFamily, "POSTER_SUBTITLE_FONT_FILE")
+  ].filter(Boolean).join("\n");
+  const textAlign = getPosterTextAlign(input.viewId);
+  const textAnchor = getTextAnchor(textAlign);
+  const textX = getAlignedTextX(textAlign);
+  const titleColor = input.titleColor ?? "#2C241E";
+  const subtitleColor = input.subtitleColor ?? "#4D4035";
+  const textShadowColor = input.textShadowColor ?? "rgba(44,36,30,0.18)";
+  const salesName = limitText(input.salesName, 5);
+  const salesPhone = limitText(input.salesPhone, 12);
 
   const sales = input.showSalesInfo
     ? `<g>
         <rect x="${posterLayout.sales.x}" y="${posterLayout.sales.y}" width="${posterLayout.sales.width}" height="${posterLayout.sales.height}" rx="24" fill="rgba(255,255,255,0.78)"/>
-        <text x="${posterLayout.sales.x + 42}" y="${posterLayout.sales.y + 70}" font-size="${posterLayout.sales.fontSize}" font-weight="600" fill="#172033">姓名：</text>
-        <text x="${posterLayout.sales.x + 520}" y="${posterLayout.sales.y + 70}" font-size="${posterLayout.sales.fontSize}" font-weight="600" fill="#172033">电话：</text>
+        <text x="${posterLayout.sales.x + 42}" y="${posterLayout.sales.y + 70}" font-size="${posterLayout.sales.fontSize}" font-weight="600" fill="#172033">姓名：${escapeXml(salesName)}</text>
+        <text x="${posterLayout.sales.x + 520}" y="${posterLayout.sales.y + 70}" font-size="${posterLayout.sales.fontSize}" font-weight="600" fill="#172033">电话：${escapeXml(salesPhone)}</text>
       </g>`
     : "";
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${POSTER_WIDTH}" height="${POSTER_HEIGHT}" viewBox="0 0 ${POSTER_WIDTH} ${POSTER_HEIGHT}">
     <style>
       ${posterFontFaceCss}
-      text { font-family: "${posterFontFamily}", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; }
+      .title-text { font-family: "${titleFontFamily}", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; }
+      .subtitle-text { font-family: "${subtitleFontFamily}", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; }
     </style>
-    <text font-weight="800" fill="#172033">${textLines(titleLines, posterLayout.title.x, posterLayout.title.y, titleTextLayout.lineHeight, titleTextLayout.fontSize)}</text>
-    <text font-weight="500" fill="#405066">${textLines(subtitleLines, posterLayout.subtitle.x, posterLayout.subtitle.y, subtitleTextLayout.lineHeight, subtitleTextLayout.fontSize)}</text>
+    <defs>
+      <filter id="softTextShadow" x="-10%" y="-20%" width="120%" height="150%">
+        <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="${textShadowColor}" flood-opacity="1"/>
+      </filter>
+    </defs>
+    <text font-weight="800" class="title-text" fill="${titleColor}" text-anchor="${textAnchor}" filter="url(#softTextShadow)">${textLines(titleLines, textX, posterLayout.title.y, titleTextLayout.lineHeight, titleTextLayout.fontSize)}</text>
+    <text font-weight="500" class="subtitle-text" fill="${subtitleColor}" text-anchor="${textAnchor}" filter="url(#softTextShadow)">${textLines(subtitleLines, textX, posterLayout.subtitle.y, subtitleLineHeight, subtitleFontSize)}</text>
     ${sales}
   </svg>`;
 }

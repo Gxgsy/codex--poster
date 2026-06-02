@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { POST } from "@/app/api/generate/route";
 import { AiProviderGenerationError, classifyGenerateError } from "@/lib/api/generate-errors";
 
 describe("generate API error classification", () => {
@@ -65,5 +66,25 @@ describe("generate API error classification", () => {
       message: "Poster generation failed.",
       status: 500
     });
+  });
+
+  it("rejects poster copy that exceeds the title and subtitle limits", async () => {
+    const response = await POST(new Request("http://localhost/api/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        doubaoApiKey: "test-key",
+        title: "一二三四五六七八九十一二三四五",
+        subtitle: "一二三四五六七八九十一二三四五六七八九十一",
+        posterSize: "1080*1920",
+        productId: "cabin",
+        viewId: "front",
+        backgroundId: "teaching-building-corner",
+        showLogo: false,
+        showSalesInfo: false
+      })
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid request." });
   });
 });

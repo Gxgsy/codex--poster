@@ -16,7 +16,7 @@ export const assetConfigSchema = z.object({
         z.object({
           id: z.string().min(1),
           name: z.string().min(1),
-          image: z.string().startsWith("/assets/")
+          image: z.string().startsWith("/assets/").optional()
         })
       ).min(1)
     })
@@ -26,14 +26,18 @@ export const assetConfigSchema = z.object({
       id: z.string().min(1),
       name: z.string().min(1),
       sceneType: schoolSceneSchema,
-      image: z.string().startsWith("/assets/"),
+      image: z.string().startsWith("/assets/").optional(),
       stylePrompt: z.string().min(20),
       compositionPrompt: z.string().min(20)
     })
   ).min(1),
-  logo: z.object({
-    image: z.string().startsWith("/assets/")
-  })
+  logos: z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      image: z.string().startsWith("/assets/")
+    })
+  ).min(1)
 });
 
 export type AssetConfig = z.infer<typeof assetConfigSchema>;

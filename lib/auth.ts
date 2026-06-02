@@ -1,5 +1,9 @@
 export function isPasswordValid(input: string, expected: string | undefined): boolean {
-  return input.length > 0 && Boolean(expected) && input === expected;
+  if (!expected) {
+    return true;
+  }
+
+  return input.length > 0 && input === expected;
 }
 
 export function requireAccessPassword(input: string | null): void {

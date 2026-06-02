@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
-  <rect width="600" height="900" fill="#f4f7fb"/>
-  <rect x="110" y="90" width="380" height="720" rx="36" fill="#fdfefe" stroke="#8fa3b8" stroke-width="8"/>
-  <rect x="160" y="150" width="280" height="120" rx="18" fill="#dce7f2"/>
-  <text x="300" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#243244">AI CABIN</text>
-  <rect x="185" y="330" width="230" height="330" rx="24" fill="#edf3f8" stroke="#b5c4d4" stroke-width="4"/>
-  <circle cx="300" cy="735" r="30" fill="#8fb5c8"/>
-</svg>

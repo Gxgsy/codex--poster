@@ -9,7 +9,10 @@ describe("isPasswordValid", () => {
   it("rejects empty or mismatched passwords", () => {
     expect(isPasswordValid("", "secret")).toBe(false);
     expect(isPasswordValid("wrong", "secret")).toBe(false);
-    expect(isPasswordValid("secret", "")).toBe(false);
-    expect(isPasswordValid("secret", undefined)).toBe(false);
+  });
+
+  it("allows access when no password is configured", () => {
+    expect(isPasswordValid("", "")).toBe(true);
+    expect(isPasswordValid("", undefined)).toBe(true);
   });
 });

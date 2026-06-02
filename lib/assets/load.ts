@@ -1,14 +1,20 @@
-import config from "@/data/assets.config.json";
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { assetConfigSchema, type AssetConfig } from "./schema";
 
-let cachedConfig: AssetConfig | undefined;
+const assetConfigPath = path.resolve(process.cwd(), "data", "assets.config.json");
 
 export function loadAssetConfig(): AssetConfig {
-  if (!cachedConfig) {
-    cachedConfig = assetConfigSchema.parse(config);
-  }
+  const config = JSON.parse(readFileSync(assetConfigPath, "utf8"));
 
-  return cachedConfig;
+  return assetConfigSchema.parse(config);
+}
+
+export function saveAssetConfig(config: AssetConfig): AssetConfig {
+  const parsedConfig = assetConfigSchema.parse(config);
+  writeFileSync(assetConfigPath, `${JSON.stringify(parsedConfig, null, 2)}\n`);
+
+  return parsedConfig;
 }
 
 export function findProductView(config: AssetConfig, productId: string, viewId: string) {
@@ -30,4 +36,14 @@ export function findBackground(config: AssetConfig, backgroundId: string) {
   }
 
   return background;
+}
+
+export function findLogo(config: AssetConfig, logoId: string) {
+  const logo = config.logos.find((item) => item.id === logoId);
+
+  if (!logo) {
+    throw new Error("Selected logo was not found.");
+  }
+
+  return logo;
 }

@@ -6,7 +6,8 @@ export const aiGenerationTimeoutMessage = "AI image generation timed out.";
 
 const clientErrorMessages = new Set([
   "Selected product view was not found.",
-  "Selected background was not found."
+  "Selected background was not found.",
+  "Selected logo was not found."
 ]);
 
 const aiProviderErrorMessages = new Set([
