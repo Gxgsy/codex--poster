@@ -5,6 +5,12 @@ import initialAssetConfig from "@/data/assets.config.json";
 import type { AssetConfig } from "@/lib/assets/schema";
 
 type Status = "idle" | "loading" | "success" | "error";
+type GenerateJobResponse = {
+  jobId: string;
+  status: "queued" | "running" | "success" | "error";
+  posters?: Array<{ image: string }>;
+  error?: string;
+};
 
 const initialAssets = initialAssetConfig as AssetConfig;
 const initialProduct = initialAssets.products[0];
@@ -42,6 +48,12 @@ async function readErrorMessage(response: Response): Promise<string> {
   }
 
   return "生成失败";
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 export default function HomePage() {
@@ -213,41 +225,72 @@ export default function HomePage() {
     setPosterUrls([]);
 
     try {
-      const generatedPosterUrls: string[] = [];
-      for (let variationIndex = 0; variationIndex < 3; variationIndex += 1) {
-        const response = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            doubaoApiKey,
-            title,
-            subtitle,
-            posterSize,
-            productId,
-            viewId,
-            backgroundId,
-            logoId,
-            showLogo,
-            showSalesInfo,
-            salesName,
-            salesPhone,
-            variationIndex,
-          }),
-        });
+      const startResponse = await fetch("/api/generate/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doubaoApiKey,
+          title,
+          subtitle,
+          posterSize,
+          productId,
+          viewId,
+          backgroundId,
+          logoId,
+          showLogo,
+          showSalesInfo,
+          salesName,
+          salesPhone,
+        }),
+      });
 
-        if (!response.ok) {
-          setError(await readErrorMessage(response));
+      if (!startResponse.ok) {
+        setError(await readErrorMessage(startResponse));
+        setStatus("error");
+        return;
+      }
+
+      const startPayload = await startResponse.json() as GenerateJobResponse;
+      let networkFailures = 0;
+
+      for (let attempt = 0; attempt < 240; attempt += 1) {
+        await sleep(3000);
+
+        let statusResponse: Response;
+        try {
+          statusResponse = await fetch(`/api/generate/status/${startPayload.jobId}`, { cache: "no-store" });
+        } catch {
+          networkFailures += 1;
+          if (networkFailures >= 5) {
+            throw new Error("polling failed");
+          }
+          continue;
+        }
+
+        if (!statusResponse.ok) {
+          setError(await readErrorMessage(statusResponse));
           setStatus("error");
           return;
         }
 
-        const payload = await response.json() as { posters?: Array<{ image: string }> };
-        const nextPosterUrls = payload.posters?.map((poster) => poster.image) ?? [];
-        generatedPosterUrls.push(...nextPosterUrls);
-        setPosterUrls([...generatedPosterUrls]);
+        networkFailures = 0;
+        const payload = await statusResponse.json() as GenerateJobResponse;
+        setPosterUrls(payload.posters?.map((poster) => poster.image) ?? []);
+
+        if (payload.status === "success") {
+          setStatus("success");
+          return;
+        }
+
+        if (payload.status === "error") {
+          setError(payload.error || "生成失败");
+          setStatus("error");
+          return;
+        }
       }
 
-      setStatus("success");
+      setError("生成时间过长，请稍后重试");
+      setStatus("error");
     } catch {
       setError("网络异常，请稍后重试");
       setStatus("error");
