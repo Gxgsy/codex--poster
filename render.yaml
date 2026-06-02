@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: codex-poster
+    runtime: node
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_BASE_URL
+        value: https://api.szamca.com:30000/v1
+      - key: OPENAI_IMAGE_MODEL
+        value: doubao-seedream-5-0-260128
+      - key: AI_GENERATION_TIMEOUT_MS
+        value: "180000"
+      - key: POSTER_TITLE_FONT_FAMILY
+        value: Alibaba PuHuiTi Heavy
+      - key: POSTER_TITLE_FONT_FILE
+        value: AlibabaPuHuiTi-3-105-Heavy.otf
+      - key: POSTER_SUBTITLE_FONT_FAMILY
+        value: Alibaba PuHuiTi Medium
+      - key: POSTER_SUBTITLE_FONT_FILE
+        value: AlibabaPuHuiTi-3-65-Medium.otf

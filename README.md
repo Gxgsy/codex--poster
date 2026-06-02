@@ -50,13 +50,37 @@ Generated images must keep a premium warm style, place the cabin against and par
 
 ## Deployment
 
-Deploy to Vercel and configure:
+This app should be deployed as a Node web service because it uses API routes,
+Sharp image composition, and longer-running AI image generation requests.
 
-- `APP_ACCESS_PASSWORD`
-- `AI_PROVIDER`
-- `OPENAI_API_KEY` when using OpenAI
-- `OPENAI_BASE_URL`
-- `OPENAI_IMAGE_MODEL`
-- `AI_GENERATION_TIMEOUT_MS`
-- `POSTER_FONT_FAMILY`
-- `POSTER_FONT_FILE`
+The repository includes `render.yaml` for Render Blueprint deployment. Render
+will build with:
+
+```bash
+npm ci && npm run build
+```
+
+and start with:
+
+```bash
+npm run start
+```
+
+The production service uses users' own Doubao/OpenAI-compatible API keys from
+the web form, so no default API key is committed to the repository.
+
+Configured deployment environment variables:
+
+- `AI_PROVIDER=openai`
+- `OPENAI_BASE_URL=https://api.szamca.com:30000/v1`
+- `OPENAI_IMAGE_MODEL=doubao-seedream-5-0-260128`
+- `AI_GENERATION_TIMEOUT_MS=180000`
+- `POSTER_TITLE_FONT_FAMILY=Alibaba PuHuiTi Heavy`
+- `POSTER_TITLE_FONT_FILE=AlibabaPuHuiTi-3-105-Heavy.otf`
+- `POSTER_SUBTITLE_FONT_FAMILY=Alibaba PuHuiTi Medium`
+- `POSTER_SUBTITLE_FONT_FILE=AlibabaPuHuiTi-3-65-Medium.otf`
+
+The current upload endpoints write to the service filesystem. This works for
+local use and temporary edits, but durable production uploads should be moved
+to object storage such as S3/R2/TOS before relying on user-uploaded assets long
+term.
